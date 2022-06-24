@@ -1,0 +1,34 @@
+Gateway_HQYJ_MPU2MCU:
+  Topic: Gateway_HQYJ/Issue
+  Dictionaries:
+    To_XArm:
+      Request_6servos_Pose: "3001070155A19131"
+      Control_Servo_Pose: "3002070155A1930XYY"
+      Control_XArm_Action:
+        Reset: "3001070155A15130"
+        Left: "3001070155A15131"
+        Right: "3001070155A15132"
+        Forward: "3001070155A15133"
+        Backward: "3001070155A15134"
+        Grab: "3001070155A15137"
+        Loose: "3001070155A15138"
+        Nod: "3001070155A15139"
+        Shake: "3001070155A1513A"
+        Stop: "3001070155A151FF"
+      Control_XArm_Position: "3001070155A11131"
+      Control_XArm_Grab: "3002070155A1311X2Y"
+    To_WSN:
+      By_WIFI:
+        Control_Fan:
+          "On": "2101090157XXXX66YY31"
+          "Off": "2101090157XXXX66YY30"
+        Control_Relay:
+          Break: "2101090157XXXX72YY30"
+          Close: "2101090157XXXX72YY31"
+      By_Zigbee:
+        Control_Fan:
+          "On": "210109015AXXXX66YY31"
+          "Off": "210109015AXXXX66YY30"
+        Control_Relay:
+          Break: "210109015AXXXX72YY30"
+          Close: "210109015AXXXX72YY31"

@@ -1,0 +1,49 @@
+Gateway_HQYJ_MCU2MPU:
+  Topic: Gateway_HQYJ/Upload
+  Dictionaries:
+    Protocol30:
+      "3006070055A192":
+        6servos_Pose_Upload:
+          - 150
+          - 500
+          - 500
+          - 500
+          - 500
+          - 120
+      "3001070055A12131":
+        XArm_Position_Upload: In_Storage_No1
+      "3001070055A14131":
+        XArm_Grab_Finished_Upload: Finished
+      "3004070255A1D2":
+        RFID_Data_Upload:
+          - "00"
+          - "00"
+          - "00"
+          - "00"
+    Protocol21:
+      By_WIFI:
+        "2101090057XXXX66YY30":
+          Fan: "Off"
+        "2101090057XXXX66YY31":
+          Fan: "On"
+        "2101090057XXXX72YY30":
+          Relay: Break
+        "2101090057XXXX72YY31":
+          Relay: Close
+        "2102090057XXXX4C":
+          Photoresistor: 0000
+        "2102090057XXXX54":
+          DHT11: {Temperature: 00, Humidity: 00}
+      By_Zigbee:
+        "210109005AXXXX66YY30":
+          Fan: "Off"
+        "210109005AXXXX66YY31":
+          Fan: "On"
+        "210109005AXXXX72YY30":
+          Relay: Break
+        "210109005AXXXX72YY31":
+          Relay: Close
+        "210209005AXXXX4C":
+          Photoresistor: 0000
+        "210209005AXXXX54":
+          DHT11: {Temperature: 00, Humidity: 00}
