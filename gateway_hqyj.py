@@ -94,7 +94,43 @@ class FS_AIARM_Gateway:
                                 else:
                                     print("obj_mqtt_clt_to_xarm_action为无效的数据类型！")
                             elif obj_mqtt_clt_to_xarm.get("Control_XArm_Grab"):
-                                obj_matt_clt_to_xram_grab=obj_mqtt_clt_to_xarm["Control_XArm_Grab"]
+                                obj_mqtt_clt_to_xram_grab=obj_mqtt_clt_to_xarm["Control_XArm_Grab"]
+                                if type(obj_mqtt_clt_to_xram_grab)==dict:
+                                    try:
+                                        start= obj_mqtt_clt_to_xram_grab["start"]
+                                        end  = obj_mqtt_clt_to_xram_grab["end"]
+                                    except:
+                                        print("obj_mqtt_clt_to_xram_grab未包含起止点信息！")
+                                    if not int(start) < 5 and int(start) > 0:
+                                        print("start超限！")
+                                    if not int(end) < 5 and int(end) > 0:
+                                        print("end超限！")
+                                    str_xram_grab=self.obj_cfg_mqtt2sp["Gateway_HQYJ_MPU2MCU"]["Dictionaries"]["To_XArm"]["Control_XArm_Grab"]
+                                    str_xram_grab=list(str_xram_grab)
+                                    str_xram_grab[-3],str_xram_grab[-1]=str(start),str(end)
+                                    if not self.obj_serial_port.send_str_data(''.join(str_xram_grab)):
+                                        print("串口发送str_xram_grab失败！")
+                                else:
+                                    print("obj_mqtt_clt_to_xarm_grab为无效的数据类型！")
+                            elif obj_mqtt_clt_to_xarm.get("Control_Servo_Pose"):
+                                obj_mqtt_clt_to_xram_spose=obj_mqtt_clt_to_xarm["Control_Servo_Pose"]
+                                if type(obj_mqtt_clt_to_xram_spose)==dict:
+                                    try:
+                                        ServoId= obj_mqtt_clt_to_xram_spose["ServoId"]
+                                        Pose   = obj_mqtt_clt_to_xram_spose["Pose"]
+                                    except:
+                                        print("obj_mqtt_clt_to_xram_spose未包含舵机或角度信息！")
+                                    if not int(ServoId) < 7 and int(ServoId) > 0:
+                                        print("ServoId超限！")
+                                    if not int(Pose) < 251 and int(Pose) >= 0:
+                                        print("Pose超限！")
+                                    str_xram_spose=self.obj_cfg_mqtt2sp["Gateway_HQYJ_MPU2MCU"]["Dictionaries"]["To_XArm"]["Control_Servo_Pose"]
+                                    str_xram_spose=list(str_xram_spose)
+                                    str_xram_spose[-3],str_xram_spose[-2],str_xram_spose[-1]=str(ServoId),str(hex(int(Pose)))[-2],str(hex(int(Pose)))[-1]
+                                    if not self.obj_serial_port.send_str_data(''.join(str_xram_spose)):
+                                        print("串口发送str_xram_spose失败！")
+                                else:
+                                    print("obj_mqtt_clt_to_xram_spose为无效的数据类型！")          
                         else:
                             print("obj_mqtt_clt_to_xarm为无效的数据类型！")
                     elif obj_mqtt_clt.get("To_WSN"):
@@ -103,11 +139,63 @@ class FS_AIARM_Gateway:
                             if obj_mqtt_clt_to_wsn.get("By_WIFI"):
                                 obj_mqtt_clt_to_wsn_by_wifi = obj_mqtt_clt_to_wsn["By_WIFI"]
                                 if type(obj_mqtt_clt_to_wsn_by_wifi) == dict:
-                                    pass
+                                    if obj_mqtt_clt_to_wsn_by_wifi.get("Control_Fan"):
+                                        obj_mqtt_clt_to_wsn_by_wifi_control_fan = obj_mqtt_clt_to_wsn_by_wifi["Control_Fan"]
+                                        if type(obj_mqtt_clt_to_wsn_by_wifi_control_fan) == str:
+                                            if obj_mqtt_clt_to_wsn_by_wifi_control_fan in ["On", "Off"]:
+                                                # obj_mqtt_clt_to_wsn_by_wifi_control_fan = '"' + obj_mqtt_clt_to_wsn_by_wifi_control_fan + '"'
+                                                print(self.obj_cfg_mqtt2sp["Gateway_HQYJ_MPU2MCU"]["Dictionaries"]["To_WSN"]["By_WIFI"]["Control_Fan"][obj_mqtt_clt_to_wsn_by_wifi_control_fan])
+                                                if not self.obj_serial_port.send_str_data(self.obj_cfg_mqtt2sp["Gateway_HQYJ_MPU2MCU"]["Dictionaries"]["To_WSN"]["By_WIFI"]["Control_Fan"][obj_mqtt_clt_to_wsn_by_wifi_control_fan]):
+                                                    print(f"串口发送{obj_mqtt_clt_to_wsn_by_wifi_control_fan}失败！")
+                                            else:
+                                                print("obj_mqtt_clt_to_wsn_by_wifi_control_fan为无效字符串！")
+                                        else:
+                                            print("obj_mqtt_clt_to_wsn_by_wifi_control_fan为无效的数据类型！")
+
+                                    elif obj_mqtt_clt_to_wsn_by_wifi.get("Control_Relay"):
+                                        obj_mqtt_clt_to_wsn_by_wifi_control_relay = obj_mqtt_clt_to_wsn_by_wifi["Control_Relay"]
+                                        if type(obj_mqtt_clt_to_wsn_by_wifi_control_relay) == str:
+                                             if obj_mqtt_clt_to_wsn_by_wifi_control_relay in ["Break", "Close"]: 
+                                                if not self.obj_serial_port.send_str_data(self.obj_cfg_mqtt2sp["Gateway_HQYJ_MPU2MCU"]["Dictionaries"]["To_WSN"]["By_WIFI"]["Control_Relay"][obj_mqtt_clt_to_wsn_by_wifi_control_relay]):
+                                                    print(f"串口发送{obj_mqtt_clt_to_wsn_by_wifi_control_relay}失败！")
+                                             else:
+                                                print("obj_mqtt_clt_to_wsn_by_wifi_control_relay为无效字符串！")
+                                        else:
+                                            print("obj_mqtt_clt_to_wsn_by_wifi_control_relay为无效的数据类型！")
+                                    else:
+                                        print("obj_mqtt_clt_to_wsn_by_wifi键值错误！")
                                 else:
                                     print("obj_mqtt_clt_to_wsn_by_wifi格式错误!")
+                            if obj_mqtt_clt_to_wsn.get("By_Zigbee"):
+                                obj_mqtt_clt_to_wsn_by_zigbee = obj_mqtt_clt_to_wsn["By_Zigbee"]
+                                if type(obj_mqtt_clt_to_wsn_by_zigbee) == dict:
+                                    if obj_mqtt_clt_to_wsn_by_zigbee.get("Control_Fan"):
+                                        obj_mqtt_clt_to_wsn_by_zigbee_control_fan=obj_mqtt_clt_to_wsn_by_zigbee["Control_Fan"]
+                                        if type(obj_mqtt_clt_to_wsn_by_zigbee_control_fan)==str:
+                                            if obj_mqtt_clt_to_wsn_by_zigbee_control_fan in list(self.obj_cfg_mqtt2sp["Gateway_HQYJ_MPU2MCU"]["Dictionaries"]["To_WSN"]["By_Zigbee"]["Control_Fan"].keys()):
+                                                obj_mqtt_clt_to_wsn_by_zigbee_control_fan='"'+obj_mqtt_clt_to_wsn_by_zigbee_control_fan+'"'
+                                                if not self.obj_serial_port.send_str_data(self.obj_cfg_mqtt2sp["Gateway_HQYJ_MPU2MCU"]["Dictionaries"]["To_WSN"]["By_Zigbee"]["Control_Fan"][obj_mqtt_clt_to_wsn_by_zigbee_control_fan]):
+                                                    print(f"串口发送{obj_mqtt_clt_to_wsn_by_zigbee_control_fan}失败！")
+                                            else: print("obj_mqtt_clt_to_wsn_by_zigbee_control_fan为无效字符串！")
+                                        else: print("obj_mqtt_clt_to_wsn_by_zigbee_control_fan为无效的数据类型！")
+
+                                    elif obj_mqtt_clt_to_wsn_by_zigbee.get("Control_Relay"):
+                                        obj_mqtt_clt_to_wsn_by_zigbee_control_relay = obj_mqtt_clt_to_wsn_by_zigbee["Control_Relay"]
+                                        if type(obj_mqtt_clt_to_wsn_by_zigbee_control_relay) == str:
+                                            if obj_mqtt_clt_to_wsn_by_zigbee_control_relay in list(self.obj_cfg_mqtt2sp["Gateway_HQYJ_MPU2MCU"]["Dictionaries"]["To_WSN"]["By_Zigbee"]["Control_Relay"].keys()):
+                                                obj_mqtt_clt_to_wsn_by_zigbee_control_relay='"'+obj_mqtt_clt_to_wsn_by_zigbee_control_relay+'"'
+                                                if not self.obj_serial_port.send_str_data(self.obj_cfg_mqtt2sp["Gateway_HQYJ_MPU2MCU"]["Dictionaries"]["To_WSN"]["By_Zigbee"]["Control_Relay"][obj_mqtt_clt_to_wsn_by_zigbee_control_relay]):
+                                                    print(f"串口发送{obj_mqtt_clt_to_wsn_by_zigbee_control_relay}失败！")
+                                            else:
+                                                print("obj_mqtt_clt_to_wsn_by_zigbee_control_relay为无效字符串！")
+                                        else:
+                                            print("obj_mqtt_clt_to_wsn_by_zigbee_control_relay为无效的数据类型！")
+                                else:
+                                    print("obj_mqtt_clt_to_wsn_by_zigbee为无效的数据类型！")
                         else:
                             print("obj_mqtt_clt_to_wsn格式错误!")
+                    else:
+                        print("obj_mqtt_clt键错误!")
                 else:
                     print("obj_mqtt_clt格式错误!")
             else:
