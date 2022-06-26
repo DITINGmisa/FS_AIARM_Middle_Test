@@ -173,7 +173,7 @@ class FS_AIARM_Gateway:
                                         obj_mqtt_clt_to_wsn_by_zigbee_control_fan=obj_mqtt_clt_to_wsn_by_zigbee["Control_Fan"]
                                         if type(obj_mqtt_clt_to_wsn_by_zigbee_control_fan)==str:
                                             if obj_mqtt_clt_to_wsn_by_zigbee_control_fan in list(self.obj_cfg_mqtt2sp["Gateway_HQYJ_MPU2MCU"]["Dictionaries"]["To_WSN"]["By_Zigbee"]["Control_Fan"].keys()):
-                                                obj_mqtt_clt_to_wsn_by_zigbee_control_fan='"'+obj_mqtt_clt_to_wsn_by_zigbee_control_fan+'"'
+                                                # obj_mqtt_clt_to_wsn_by_zigbee_control_fan='"'+obj_mqtt_clt_to_wsn_by_zigbee_control_fan+'"'
                                                 if not self.obj_serial_port.send_str_data(self.obj_cfg_mqtt2sp["Gateway_HQYJ_MPU2MCU"]["Dictionaries"]["To_WSN"]["By_Zigbee"]["Control_Fan"][obj_mqtt_clt_to_wsn_by_zigbee_control_fan]):
                                                     print(f"串口发送{obj_mqtt_clt_to_wsn_by_zigbee_control_fan}失败！")
                                             else: print("obj_mqtt_clt_to_wsn_by_zigbee_control_fan为无效字符串！")
@@ -183,7 +183,7 @@ class FS_AIARM_Gateway:
                                         obj_mqtt_clt_to_wsn_by_zigbee_control_relay = obj_mqtt_clt_to_wsn_by_zigbee["Control_Relay"]
                                         if type(obj_mqtt_clt_to_wsn_by_zigbee_control_relay) == str:
                                             if obj_mqtt_clt_to_wsn_by_zigbee_control_relay in list(self.obj_cfg_mqtt2sp["Gateway_HQYJ_MPU2MCU"]["Dictionaries"]["To_WSN"]["By_Zigbee"]["Control_Relay"].keys()):
-                                                obj_mqtt_clt_to_wsn_by_zigbee_control_relay='"'+obj_mqtt_clt_to_wsn_by_zigbee_control_relay+'"'
+                                                # obj_mqtt_clt_to_wsn_by_zigbee_control_relay='"'+obj_mqtt_clt_to_wsn_by_zigbee_control_relay+'"'
                                                 if not self.obj_serial_port.send_str_data(self.obj_cfg_mqtt2sp["Gateway_HQYJ_MPU2MCU"]["Dictionaries"]["To_WSN"]["By_Zigbee"]["Control_Relay"][obj_mqtt_clt_to_wsn_by_zigbee_control_relay]):
                                                     print(f"串口发送{obj_mqtt_clt_to_wsn_by_zigbee_control_relay}失败！")
                                             else:
@@ -202,7 +202,140 @@ class FS_AIARM_Gateway:
                 pass
 
     def sp2mqtt(self):
-        pass
+        while self.obj_serial_port.loop_run:
+            if not self.obj_serial_port.queue_rcv_msg.empty():
+                str_sp_rcv = self.obj_serial_port.queue_rcv_msg.get()
+                str_sp_rcv_excpt_crc = str_sp_rcv[:-2]
+                # 长度校验
+                if (int(str_sp_rcv_excpt_crc[2: 4], 16) + int(str_sp_rcv_excpt_crc[4: 6], 16)) * 2 == len(str_sp_rcv_excpt_crc):
+                    if str_sp_rcv_excpt_crc[0: 2] == "30":
+                        if not str_sp_rcv_excpt_crc.find("3006070055A192"):
+                            obj_mqtt_pblsh = {"Protocol30": self.obj_cfg_sp2mqtt["Gateway_HQYJ_MCU2MPU"]["Dictionaries"]["Protocol30"]["3006070055A192"]}
+                            list_6servos_pose = [int(str_sp_rcv_excpt_crc[i: (i + 2)], 16) * 4 for i in range(14, len(str_sp_rcv_excpt_crc), 2)]
+                            b_size_check_pass = True
+                            for pose in list_6servos_pose:
+                                if not 0 <= pose <= 1000:
+                                    b_size_check_pass = False
+                            if b_size_check_pass:
+                                obj_mqtt_pblsh["Protocol30"]["6servos_Pose_Upload"] = list_6servos_pose
+                                if not self.obj_mqtt_clt.upload_mcu_json_data(obj_mqtt_pblsh):
+                                    print("obj_mqtt_pblsh:针对30协议:上传6个舵机的数据失败!")
+                            else:
+                                print("所上传的6个舵机角度规格有误!")
+                        elif not str_sp_rcv_excpt_crc.find("3001070055A12131"):
+                            obj_mqtt_pblsh = {"Protocol30": self.obj_cfg_sp2mqtt["Gateway_HQYJ_MCU2MPU"]["Dictionaries"]["Protocol30"]["3001070055A12131"]}
+                            if not self.obj_mqtt_clt.upload_mcu_json_data(obj_mqtt_pblsh):
+                                print("obj_mqtt_pblsh:针对30协议:上传到达仓库1信号失败!")
+                        elif not str_sp_rcv_excpt_crc.find("3001070055A14131"):
+                            obj_mqtt_pblsh = {"Protocol30": self.obj_cfg_sp2mqtt["Gateway_HQYJ_MCU2MPU"]["Dictionaries"]["Protocol30"]["3001070055A14131"]}
+                            if not self.obj_mqtt_clt.upload_mcu_json_data(obj_mqtt_pblsh):
+                                print("obj_mqtt_pblsh:针对30协议:上传抓取完毕信号失败!")
+                        elif not str_sp_rcv_excpt_crc.find("3004070255A1D2"):
+                            obj_mqtt_pblsh = {"Protocol30": self.obj_cfg_sp2mqtt["Gateway_HQYJ_MCU2MPU"]["Dictionaries"]["Protocol30"]["3004070255A1D2"]}
+                            list_rfid_data = [int(str_sp_rcv_excpt_crc[i: (i + 2)], 16) for i in range(14, len(str_sp_rcv_excpt_crc), 2)]
+                            obj_mqtt_pblsh["Protocol30"]["RFID_Data_Upload"] = list_rfid_data
+                            if not self.obj_mqtt_clt.upload_mcu_json_data(obj_mqtt_pblsh):
+                                print("obj_mqtt_pblsh:针对30协议:上传RFID数据失败!")
+                        else:
+                            print("str_sp_rcv_excpt_crc:针对30协议数据有误!")
+                    elif str_sp_rcv_excpt_crc[0: 2] == "21":
+                        if str_sp_rcv_excpt_crc[8: 10] == "57":
+                            if not str_sp_rcv_excpt_crc.find("2101090057"):
+                                if str_sp_rcv_excpt_crc[14: 16] == "66":
+                                    if str_sp_rcv_excpt_crc[18: 20] == "30":
+                                        obj_mqtt_pblsh = {"Protocol21": {"By_WIFI": self.obj_cfg_sp2mqtt["Gateway_HQYJ_MCU2MPU"]["Dictionaries"]["Protocol21"]["By_WIFI"]["2101090057XXXX66YY30"]}}
+                                        if not self.obj_mqtt_clt.upload_mcu_json_data(obj_mqtt_pblsh):
+                                            print("obj_mqtt_pblsh:针对21协议:Wifi模块:上传风扇状态失败!")
+                                    elif str_sp_rcv_excpt_crc[18: 20] == "31":
+                                        obj_mqtt_pblsh = {"Protocol21": {"By_WIFI": self.obj_cfg_sp2mqtt["Gateway_HQYJ_MCU2MPU"]["Dictionaries"]["Protocol21"]["By_WIFI"]["2101090057XXXX66YY31"]}}
+                                        if not self.obj_mqtt_clt.upload_mcu_json_data(obj_mqtt_pblsh):
+                                            print("obj_mqtt_pblsh:针对21协议:Wifi模块:上传风扇状态失败!")
+                                    else:
+                                        print("str_sp_rcv_excpt_crc:针对21协议:Wifi模块:风扇状态有误!")
+                                elif str_sp_rcv_excpt_crc[14: 16] == "72":
+                                    if str_sp_rcv_excpt_crc[18: 20] == "30":
+                                        obj_mqtt_pblsh = {"Protocol21": {"By_WIFI": self.obj_cfg_sp2mqtt["Gateway_HQYJ_MCU2MPU"]["Dictionaries"]["Protocol21"]["By_WIFI"]["2101090057XXXX72YY30"]}}
+                                        if not self.obj_mqtt_clt.upload_mcu_json_data(obj_mqtt_pblsh):
+                                            print("obj_mqtt_pblsh:针对21协议:Wifi模块:上传继电器状态失败!")
+                                    elif str_sp_rcv_excpt_crc[18: 20] == "31":
+                                        obj_mqtt_pblsh = {"Protocol21": {"By_WIFI": self.obj_cfg_sp2mqtt["Gateway_HQYJ_MCU2MPU"]["Dictionaries"]["Protocol21"]["By_WIFI"]["2101090057XXXX72YY31"]}}
+                                        if not self.obj_mqtt_clt.upload_mcu_json_data(obj_mqtt_pblsh):
+                                            print("obj_mqtt_pblsh:针对21协议:Wifi模块:上传继电器状态失败!")
+                                    else:
+                                        print("str_sp_rcv_excpt_crc:针对21协议:Wifi模块:继电器状态有误!")
+                                else:
+                                    print("str_sp_rcv_excpt_crc:针对21协议:Wifi模块:可控类设备的设备类型无效!")
+                            elif not str_sp_rcv_excpt_crc.find("2102090057"):
+                                if str_sp_rcv_excpt_crc[14: 16] == "4C":
+                                    print("&&&&&&&&&&&&&")
+                                    obj_mqtt_pblsh = {"Protocol21": {"By_WIFI": self.obj_cfg_sp2mqtt["Gateway_HQYJ_MCU2MPU"]["Dictionaries"]["Protocol21"]["By_WIFI"]["2102090057XXXX4C"]}}
+                                    data_photoresistor = int(str_sp_rcv_excpt_crc[18: 22], 16)
+                                    obj_mqtt_pblsh["Protocol21"]["By_WIFI"]["Photoresistor"] = data_photoresistor
+                                    if not self.obj_mqtt_clt.upload_mcu_json_data(obj_mqtt_pblsh):
+                                        print("obj_mqtt_pblsh:针对21协议:Wifi模块:上传光敏传感器数据失败!")
+                                elif str_sp_rcv_excpt_crc[14: 16] == "54":
+                                    obj_mqtt_pblsh = {"Protocol21": {"By_WIFI": self.obj_cfg_sp2mqtt["Gateway_HQYJ_MCU2MPU"]["Dictionaries"]["Protocol21"]["By_WIFI"]["2102090057XXXX54"]}}
+                                    data_temperature = int(str_sp_rcv_excpt_crc[18: 20], 16)
+                                    data_humidity = int(str_sp_rcv_excpt_crc[20: 22], 16)
+                                    obj_mqtt_pblsh["Protocol21"]["By_WIFI"]["DHT11"]["Temperature"] = data_temperature
+                                    obj_mqtt_pblsh["Protocol21"]["By_WIFI"]["DHT11"]["Humidity"] = data_humidity
+                                    if not self.obj_mqtt_clt.upload_mcu_json_data(obj_mqtt_pblsh):
+                                        print("obj_mqtt_pblsh:针对21协议:Wifi模块:上传温湿度传感器数据失败!")
+                                else:
+                                    print("str_sp_rcv_excpt_crc:针对21协议:Wifi模块:上传类设备的设备类型无效!")
+                            else:
+                                print("str_sp_rcv_excpt_crc:针对21协议:Wifi模块:传感器数据有误!")
+                        elif str_sp_rcv_excpt_crc[8: 10] == "5A":
+                            if not str_sp_rcv_excpt_crc.find("210109005A"):
+                                if str_sp_rcv_excpt_crc[14: 16] == "66":
+                                    if str_sp_rcv_excpt_crc[18: 20] == "30":
+                                        obj_mqtt_pblsh = {"Protocol21": {"By_Zigbee": self.obj_cfg_sp2mqtt["Gateway_HQYJ_MCU2MPU"]["Dictionaries"]["Protocol21"]["By_Zigbee"]["210109005AXXXX66YY30"]}}
+                                        if not self.obj_mqtt_clt.upload_mcu_json_data(obj_mqtt_pblsh):
+                                            print("obj_mqtt_pblsh:针对21协议:Zigbee模块:上传风扇状态失败!")
+                                    elif str_sp_rcv_excpt_crc[18: 20] == "31":
+                                        obj_mqtt_pblsh = {"Protocol21": {"By_Zigbee": self.obj_cfg_sp2mqtt["Gateway_HQYJ_MCU2MPU"]["Dictionaries"]["Protocol21"]["By_Zigbee"]["210109005AXXXX66YY31"]}}
+                                        if not self.obj_mqtt_clt.upload_mcu_json_data(obj_mqtt_pblsh):
+                                            print("obj_mqtt_pblsh:针对21协议:Zigbee模块:上传风扇状态失败!")
+                                    else:
+                                        print("str_sp_rcv_excpt_crc:针对21协议:Zigbee模块:风扇状态有误!")
+                                elif str_sp_rcv_excpt_crc[14: 16] == "72":
+                                    if str_sp_rcv_excpt_crc[18: 20] == "30":
+                                        obj_mqtt_pblsh = {"Protocol21": {"By_Zigbee": self.obj_cfg_sp2mqtt["Gateway_HQYJ_MCU2MPU"]["Dictionaries"]["Protocol21"]["By_Zigbee"]["210109005AXXXX72YY30"]}}
+                                        if not self.obj_mqtt_clt.upload_mcu_json_data(obj_mqtt_pblsh):
+                                            print("obj_mqtt_pblsh:针对21协议:Wifi模块:上传继电器状态失败!")
+                                    elif str_sp_rcv_excpt_crc[18: 20] == "31":
+                                        obj_mqtt_pblsh = {"Protocol21": {"By_Zigbee": self.obj_cfg_sp2mqtt["Gateway_HQYJ_MCU2MPU"]["Dictionaries"]["Protocol21"]["By_Zigbee"]["210109005AXXXX72YY31"]}}
+                                        if not self.obj_mqtt_clt.upload_mcu_json_data(obj_mqtt_pblsh):
+                                            print("obj_mqtt_pblsh:针对21协议:Wifi模块:上传继电器状态失败!")
+                                    else:
+                                        print("str_sp_rcv_excpt_crc:针对21协议:Zigbee模块:继电器状态有误!")
+                                else:
+                                    print("str_sp_rcv_excpt_crc:针对21协议:Zigbee模块:可控类设备的设备类型无效!")
+                            elif not str_sp_rcv_excpt_crc.find("210209005A"):
+                                if str_sp_rcv_excpt_crc[14: 16] == "4C":
+                                    obj_mqtt_pblsh = {"Protocol21": {"By_Zigbee": self.obj_cfg_sp2mqtt["Gateway_HQYJ_MCU2MPU"]["Dictionaries"]["Protocol21"]["By_Zigbee"]["210209005AXXXX4C"]}}
+                                    data_photoresistor = int(str_sp_rcv_excpt_crc[18: 22], 16)
+                                    obj_mqtt_pblsh["Protocol21"]["By_Zigbee"]["Photoresistor"] = data_photoresistor
+                                    if not self.obj_mqtt_clt.upload_mcu_json_data(obj_mqtt_pblsh):
+                                        print("obj_mqtt_pblsh:针对21协议:Zigbee模块:上传光敏传感器数据失败!")
+                                elif str_sp_rcv_excpt_crc[14: 16] == "54":
+                                    obj_mqtt_pblsh = {"Protocol21": {"By_Zigbee": self.obj_cfg_sp2mqtt["Gateway_HQYJ_MCU2MPU"]["Dictionaries"]["Protocol21"]["By_Zigbee"]["210209005AXXXX54"]}}
+                                    data_temperature = int(str_sp_rcv_excpt_crc[18: 20], 16)
+                                    data_humidity = int(str_sp_rcv_excpt_crc[20: 22], 16)
+                                    obj_mqtt_pblsh["Protocol21"]["By_Zigbee"]["DHT11"]["Temperature"] = data_temperature
+                                    obj_mqtt_pblsh["Protocol21"]["By_Zigbee"]["DHT11"]["Humidity"] = data_humidity
+                                    if not self.obj_mqtt_clt.upload_mcu_json_data(obj_mqtt_pblsh):
+                                        print("obj_mqtt_pblsh:针对21协议:Zigbee模块:上传温湿度传感器数据失败!")
+                                else:
+                                    print("str_sp_rcv_excpt_crc:针对21协议:Zigbee模块:上传类设备的设备类型无效!")
+                            else:
+                                print("str_sp_rcv_excpt_crc:针对21协议:Zigbee模块:传感器数据有误!")
+                        else:
+                            print("str_sp_rcv_excpt_crc:传输类型有误!")
+                    else:
+                        print("str_sp_rcv_excpt_crc:包头错误!")
+                else:
+                    print("str_sp_rcv_excpt_crc:长度校验不通过!")
 
 if __name__ == "__main__":
     obj_fs_aiarm_gtw = FS_AIARM_Gateway("/dev/ttyS4", 115200, "crc-8", 50, 25, "config/cfg_serial2mqtt.yml",
